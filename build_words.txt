@@ -1,0 +1,1 @@
+pyinstaller -F -w --distpath="D:\Electron\Projects\Python\Development\VoiceAssistant" D:\Electron\Projects\Python\Development\VoiceAssistant\main.spec
