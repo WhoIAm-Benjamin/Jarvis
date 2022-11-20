@@ -17,12 +17,14 @@
       "edge" : "интернет"
     },
     "microsoft" : {
-      "excel" : ["эксель", "эксэль"],
+      "excel" : "[эксель", "эксэль"],
       "word" : "ворд",
       "powerpoint" : ["поверпоинт", "повэрпоинт"],
       "outlook" : "аутлук",
       "piblisher" : "паблишер",
-      "visual_studio" : ["визуал", "визуалстудио"]
+      "visual_studio" : ["визуал", "визуалстудио"],
+      "to_do" : ["ту", "туду"]
+      
     },
     "other" : {
       "paint" : "paint",
@@ -31,6 +33,9 @@
       "windows_pusk" : "пуск",
       "acrobat_reader" : "акробат",
       "media_player" : "виндовс",
+      "antiviris" : "антивирус", 
+      "skype" : "скайп", 
+      "calculator": "калькулятор"
       "" : ""
     }
   }
