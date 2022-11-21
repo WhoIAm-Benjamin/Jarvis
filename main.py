@@ -60,7 +60,7 @@ def record_and_recognize_audio():  # *args: tuple):
         recognizer.adjust_for_ambient_noise(microphone, duration=2)
 
         try:
-            audio = recognizer.listen(microphone, 5, 10)
+            audio = recognizer.listen(microphone, 5, 5)
             with open("microphone_result.wav", "wb") as file:
                 file.write(audio.get_wav_data())
         except speech_recognition.WaitTimeoutError:
@@ -77,6 +77,15 @@ def record_and_recognize_audio():  # *args: tuple):
 
         return recognized_data
 
+def str_to_int(s):
+    with open("str_to_int.json", "r", encoding="utf-8") as str_to_integer:
+        trans = json.load(str_to_integer)
+    for k, v in trans.items():
+        for j in v:
+            if s == j:
+                return int(k)
+
+
 # noinspection PyUnusedLocal
 def run_command(k, commands, *key1):
     """
@@ -86,6 +95,9 @@ def run_command(k, commands, *key1):
     :param commands: other part of command
     :return: None
     """
+
+    global running
+
     if k == "change" and commands[1] == "язык":
         keyboard.send("alt + shift")  # смена языка
     elif k == "find":
@@ -109,8 +121,42 @@ def run_command(k, commands, *key1):
         # определить текущее открытое окно и путь к нему
         pass
     elif k == "shutdown" and commands[1] == "компьютер":
-        vlc.MediaPlayer(os.path.sep.join([".", "voices", "yes_sir"])).play()
-        run(args=["shutdown", "/s", "/t", "1"])
+        vlc.MediaPlayer(os.path.sep.join([".", "voices", "Есть.wav"])).play()
+        sl(5)
+        try:
+            if commands[2] == "через":
+                try:
+                    ind = commands.index("минут" or "минуты" or "секунд" or "секунды")
+                except ValueError:
+                    ind = len(commands)
+                timer = commands[3:ind]
+                if timer[0:2] == ("двадцать" or "тридцать" or "сорок" or "пятьдесят" or "шестьдесят" or "семьдесят" or "восемьдесят" or "девяносто" or "девяноста"):
+                    timer[0] = "".join(timer[0:2])
+                time = str_to_int(timer[0])
+                if commands[ind] == ("минут" or "минуты"):
+                    time *= 60
+                elif commands[ind] == ("час" or "часов" or "часа"):
+                    time *= 3600
+        except IndexError:
+            timer = 1
+        # noinspection PyUnboundLocalVariable
+        run(args=["shutdown /s /t", str(timer)])
+    elif k == "cancel":
+        vlc.MediaPlayer(os.path.sep.join([".", "voices", "Есть.wav"])).play()
+        sl(5)
+        command = commands[1:]
+        if command[1] == "выключение":
+            run(args=["shutdown /a"])
+    elif k == "writing":
+        write = True
+        while write:
+            voice = record_and_recognize_audio().split(" ")
+            if "стоп" in voice:
+                write = False
+            for i in voice:
+                keyboard.write(i)
+
+    running = False
 
 
 class Recognizer:
@@ -123,9 +169,12 @@ class Recognizer:
         :param i: number command in JSON
         :return: None
         """
-        if command[0] == "Джарвис":
+
+        global running
+
+        if command[0] == "джарвис":
             command = command[1:]
-        elif command[0] == '':
+        else:
             return
 
         key = None
@@ -138,8 +187,7 @@ class Recognizer:
                             if command[0] == str(j):
                                 print(k)
                                 key = k
-                                if key != ("find" or "change"):
-                                    i = 2
+                                i = 2
                                 break
                         if key is not None:
                             break
@@ -152,6 +200,8 @@ class Recognizer:
                         break
             elif i == 2:
                 for k, v in value.items():
+                    if key in special_keys:
+                        break
                     for k1, v1 in v.items():
                         if type(v1) is list:
                             for j in v1:
@@ -173,7 +223,9 @@ class Recognizer:
         if key is None:
             # чего вы пытаетесь добиться, сэр
             vlc.MediaPlayer(os.path.sep.join([".", "voices", "what_do_you_want_sir.wav"])).play()
+            sl(5)
             return
+        running = True
         run_command(key, command, key1)
 
 # noinspection PyPep8
@@ -194,8 +246,14 @@ if __name__ == "__main__":
     variables = ["At_your_service_sir.wav", "Good_morning.wav", "Jarvis_greeting.wav"]
     path = os.path.sep.join([".", "voices", "start", variables[random.randint(0, len(variables) - 1)]])
     vlc.MediaPlayer(path).play()
+    sl(10)
 
-    while 1:
+    special_keys = ["change", "find", "hello", "build", "cancel", "shutdown", "writing"]
+
+    running = False
+
+    while 1 and running is False:
+        print("Listening...")
         # loading JSON
         try:
             # noinspection PyUnboundLocalVariable
@@ -212,6 +270,7 @@ if __name__ == "__main__":
         except FileNotFoundError:
             pass
 
-        voice_input = "найди на компьютере *.txt"
+        voice_input = "джарвис выключи компьютер через 3 часа"
 
-        Recognizer.commands_recognizer(data_load, voice_input.split(" "))
+        if voice_input != "" and voice_input is not None:
+            Recognizer.commands_recognizer(data_load, voice_input.split(" "))
