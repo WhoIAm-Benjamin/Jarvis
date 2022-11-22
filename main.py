@@ -2,6 +2,7 @@ import speech_recognition
 # from vosk import Model, KaldiRecognizer  # offline recognize
 # import wave
 import os
+from sys import  exit
 import json
 import keyboard
 import locale
@@ -49,9 +50,10 @@ def use_offline():
 """
 
 # noinspection PyUnusedLocal
-def record_and_recognize_audio():  # *args: tuple):
+def record_and_recognize_audio(rec_lang = "ru"):  # *args: tuple):
     """
     запись и распознавание аудио
+    :param rec_lang
     """
     with microphone:
         recognized_data = ""
@@ -60,7 +62,7 @@ def record_and_recognize_audio():  # *args: tuple):
         recognizer.adjust_for_ambient_noise(microphone, duration=2)
 
         try:
-            audio = recognizer.listen(microphone, 5, 5)
+            audio = recognizer.listen(microphone, 4, 4)
             with open("microphone_result.wav", "wb") as file:
                 file.write(audio.get_wav_data())
         except speech_recognition.WaitTimeoutError:
@@ -68,7 +70,7 @@ def record_and_recognize_audio():  # *args: tuple):
             return
 
         try:
-            recognized_data = recognizer.recognize_google(audio, language="ru").lower()
+            recognized_data = recognizer.recognize_google(audio, language=rec_lang).lower()
         except speech_recognition.UnknownValueError:
             pass
         except speech_recognition.RequestError:
@@ -88,6 +90,7 @@ def str_to_int(s):
 
 # noinspection PyUnusedLocal
 def run_command(k, commands, *key1):
+
     """
     run commands
     :param k: key of command
@@ -95,8 +98,6 @@ def run_command(k, commands, *key1):
     :param commands: other part of command
     :return: None
     """
-
-    global running
 
     if k == "change" and commands[1] == "язык":
         keyboard.send("alt + shift")  # смена языка
@@ -121,8 +122,8 @@ def run_command(k, commands, *key1):
         # определить текущее открытое окно и путь к нему
         pass
     elif k == "shutdown" and commands[1] == "компьютер":
-        vlc.MediaPlayer(os.path.sep.join([".", "voices", "Есть.wav"])).play()
-        sl(5)
+        # vlc.MediaPlayer(os.path.sep.join([".", "voices", "Есть.wav"])).play()
+        # sl(5)
         try:
             if commands[2] == "через":
                 try:
@@ -140,28 +141,71 @@ def run_command(k, commands, *key1):
         except IndexError:
             timer = 1
         # noinspection PyUnboundLocalVariable
-        run(args=["shutdown /s /t", str(timer)])
+        run(args=["shutdown","/s", "/t", str(timer)])
     elif k == "cancel":
-        vlc.MediaPlayer(os.path.sep.join([".", "voices", "Есть.wav"])).play()
-        sl(5)
+        # vlc.MediaPlayer(os.path.sep.join([".", "voices", "Есть.wav"])).play()
+        # sl(5)
         command = commands[1:]
         if command[1] == "выключение":
             run(args=["shutdown /a"])
     elif k == "writing":
         write = True
+        l = "ru"
+        stop_word = "стоп"
+        try:
+            if commands[1] == "на":
+                if commands[2] == "русском":
+                    l = "ru"
+                elif commands[2] == "английском":
+                    l = "en"
+                    stop_word = "stop"
+        except IndexError:
+            l = "ru"
+        aud = vlc.MediaPlayer(os.path.sep.join([".", "voices", "At_your_service_sir.wav"]))
+        aud.play()
+        sl(2)
         while write:
-            voice = record_and_recognize_audio().split(" ")
-            if "стоп" in voice:
+            voice = record_and_recognize_audio(l)
+            try:
+                voice = voice.split(" ")
+            except AttributeError:
+                continue
+            if stop_word in voice:
                 write = False
-            for i in voice:
-                keyboard.write(i)
-
-    running = False
+                aud = vlc.MediaPlayer(os.path.sep.join([".", "voices", "Always_at_your_service_sir.wav"]))
+                aud.play()
+                sl(2)
+                return
+            if voice[0] != "":
+                for i in voice:
+                    keyboard.write(i+" ")
+    elif k == "end_program" and commands[1] == "программу":
+        aud = vlc.MediaPlayer(os.path.sep.join([".", "voices", "Always_at_your_service_sir.wav"]))
+        aud.play()
+        sl(2)
+        exit()
+    elif k == "copy":
+        aud = vlc.MediaPlayer(os.path.sep.join([".", "voices", "Always_at_your_service_sir.wav"]))
+        aud.play()
+        sl(2)
+        if lang == "ru":
+            keyboard.press_and_release("ctrl+с")
+        elif lang == "en":
+            keyboard.press_and_release("ctrl+c")
+    elif k == "paste":
+        aud = vlc.MediaPlayer(os.path.sep.join([".", "voices", "Always_at_your_service_sir.wav"]))
+        aud.play()
+        sl(2)
+        if lang == "ru":
+            keyboard.press_and_release("ctrl+м")
+        elif lang == "en":
+            keyboard.press_and_release("ctrl+v")
 
 
 class Recognizer:
     @staticmethod
     def commands_recognizer(data, command, i = 1):
+
         """
         Definition for recognize commands
         :param data: data from JSON
@@ -170,9 +214,7 @@ class Recognizer:
         :return: None
         """
 
-        global running
-
-        if command[0] == "джарвис":
+        if command[0] == "джарвис" and len(command) > 1:
             command = command[1:]
         else:
             return
@@ -225,7 +267,7 @@ class Recognizer:
             vlc.MediaPlayer(os.path.sep.join([".", "voices", "what_do_you_want_sir.wav"])).play()
             sl(5)
             return
-        running = True
+
         run_command(key, command, key1)
 
 # noinspection PyPep8
@@ -246,14 +288,12 @@ if __name__ == "__main__":
     variables = ["At_your_service_sir.wav", "Good_morning.wav", "Jarvis_greeting.wav"]
     path = os.path.sep.join([".", "voices", "start", variables[random.randint(0, len(variables) - 1)]])
     vlc.MediaPlayer(path).play()
-    sl(10)
+    sl(7)
 
-    special_keys = ["change", "find", "hello", "build", "cancel", "shutdown", "writing"]
+    special_keys = ["change", "find", "hello", "build", "cancel", "shutdown", "writing", "copy", "paste", "end_program"]
 
-    running = False
-
-    while 1 and running is False:
-        print("Listening...")
+    while 1:
+        # print("Listening...")
         # loading JSON
         try:
             # noinspection PyUnboundLocalVariable
@@ -263,14 +303,14 @@ if __name__ == "__main__":
         with open("config.json", "r", encoding="utf-8") as f:
             data_load = json.load(f)
         voice_input = record_and_recognize_audio()
-        print(voice_input)
+        #print(voice_input)
         
         try:
             os.remove("microphone_result.wav")
         except FileNotFoundError:
             pass
 
-        voice_input = "джарвис выключи компьютер через 3 часа"
+        # voice_input = "джарвис выключи компьютер через 3 часа"
 
         if voice_input != "" and voice_input is not None:
             Recognizer.commands_recognizer(data_load, voice_input.split(" "))
